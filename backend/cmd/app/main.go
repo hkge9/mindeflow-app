@@ -4,9 +4,12 @@ import (
 	"log"
 	"mindeflow-app/backend/internal/config"
 	"mindeflow-app/backend/internal/db"
-	"mindeflow-app/backend/internal/user/repository"
-	"mindeflow-app/backend/internal/user/service"
-	"mindeflow-app/backend/internal/user/transport"
+	inboxRepositoryPkg "mindeflow-app/backend/internal/inbox/repository"
+	inboxServicePkg "mindeflow-app/backend/internal/inbox/service"
+	inboxHandlerPkg "mindeflow-app/backend/internal/inbox/transport"
+	userRepositoryPkg "mindeflow-app/backend/internal/user/repository"
+	userServicePkg "mindeflow-app/backend/internal/user/service"
+	userHttpPkg "mindeflow-app/backend/internal/user/transport"
 	"net/http"
 
 	"github.com/go-chi/chi/v5/middleware"
@@ -26,9 +29,13 @@ func main() {
 	}
 	defer pool.Close()
 
-	userRepo := repository.NewPostgresRepository(pool)
-	userService := service.New(userRepo)
-	userHandler := transport.NewHandler(userService)
+	userRepo := userRepositoryPkg.NewPostgresRepository(pool)
+	userService := userServicePkg.New(userRepo)
+	userHandler := userHttpPkg.NewHandler(userService)
+
+	inboxRepo := inboxRepositoryPkg.NewPostgresRepository(pool)
+	inboxService := inboxServicePkg.New(inboxRepo)
+	inboxHandler := inboxHandlerPkg.NewHandler(inboxService)
 
 	r := chi.NewRouter()
 
@@ -41,8 +48,9 @@ func main() {
 		_, _ = w.Write([]byte("ok"))
 	})
 
-	r.Route("/api/v1", func(r chi.Router) {
-		transport.RegisterRoutes(r, userHandler)
+	r.Route("/", func(r chi.Router) {
+		userHttpPkg.RegisterRoutes(r, userHandler)
+		inboxHandlerPkg.RegisterRoutes(r, inboxHandler)
 	})
 
 	addr := ":" + cfg.AppPort

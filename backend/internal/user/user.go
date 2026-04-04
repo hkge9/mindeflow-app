@@ -6,7 +6,7 @@ type User struct {
 	Email     string
 }
 
-type UpdateInput struct {
-	full_name *string
-	email     *string
-}
+// type UpdateInput struct {
+// 	full_name *string
+// 	email     *string
+// }
