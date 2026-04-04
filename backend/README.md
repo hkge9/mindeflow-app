@@ -9,16 +9,16 @@
 
 Команды для запуска программы через терминал (порядок соблюден):
 
-docker compose up -d # запуск контейнера с бд
-make migrate-up # применение миграций
-make run # запуск приложения
+ - docker compose up -d # запуск контейнера с бд
+ - make migrate-up # применение миграций
+ - make run # запуск приложения
 
 
 доступные endpoints на данный момент:
-GET /health
-GET /user
-POST /inbox
+ - GET /health
+ - GET /user
+ - POST /inbox
 
-BASE URL: localhost:8080
+ - BASE URL: localhost:8080
 
 
