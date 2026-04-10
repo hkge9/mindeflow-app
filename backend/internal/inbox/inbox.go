@@ -4,6 +4,7 @@ import "time"
 
 type InboxItem struct {
 	ID          int
+	Title       string
 	Text        string
 	Status      string
 	CreatedAt   time.Time
@@ -12,4 +13,5 @@ type InboxItem struct {
 
 type CreateInput struct {
 	Title string
+	Text  string
 }

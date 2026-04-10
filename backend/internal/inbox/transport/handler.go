@@ -18,10 +18,16 @@ func NewHandler(service *service.Service) *Handler {
 
 func (h *Handler) CreateInboxItem(w http.ResponseWriter, r *http.Request) {
 	var req CreateRequest
-	_ = json.NewDecoder(r.Body).Decode(&req)
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		utils.WriteJSON(w, http.StatusBadRequest, map[string]string{
+			"error": "invalid request body",
+		})
+		return
+	}
 
 	item, err := h.service.Create(r.Context(), inbox.CreateInput{
 		Title: req.Title,
+		Text:  req.Text,
 	})
 	if err != nil {
 		utils.WriteError(w, err)
