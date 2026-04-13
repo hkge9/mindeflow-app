@@ -6,6 +6,7 @@ import (
 	"mindeflow-app/backend/internal/inbox/service"
 	"mindeflow-app/backend/internal/utils"
 	"net/http"
+	"strconv"
 )
 
 type Handler struct {
@@ -34,4 +35,45 @@ func (h *Handler) CreateInboxItem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	utils.WriteJSON(w, http.StatusOK, item)
+}
+
+func (h *Handler) ListInboxItems(w http.ResponseWriter, r *http.Request) {
+	q := r.URL.Query()
+
+	var filter inbox.ListFilter
+
+	if status := q.Get("status"); status != "" {
+		filter.Status = &status
+	}
+
+	limit, _ := strconv.Atoi(q.Get("limit"))
+	offset, _ := strconv.Atoi(q.Get("offset"))
+
+	filter.Limit = limit
+	filter.Offset = offset
+
+	result, err := h.service.List(r.Context(), filter)
+	if err != nil {
+		utils.WriteError(w, err)
+		return
+	}
+
+	resp := ListResponse{
+		Data: make([]InboxItemResponse, 0, len(result.Items)),
+		Meta: MetaResponse{
+			Limit:  result.Limit,
+			Offset: result.Offset,
+			Total:  result.Total,
+		},
+	}
+
+	for _, item := range result.Items {
+		resp.Data = append(resp.Data, InboxItemResponse{
+			ID:     item.ID,
+			Title:  item.Title,
+			Status: item.Status,
+		})
+	}
+
+	utils.WriteJSON(w, http.StatusOK, resp)
 }

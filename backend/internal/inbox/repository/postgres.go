@@ -2,7 +2,9 @@ package repository
 
 import (
 	"context"
+	"fmt"
 	"mindeflow-app/backend/internal/inbox"
+	"strings"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -28,4 +30,64 @@ func (r *PostgresRepository) Create(ctx context.Context, input inbox.CreateInput
 		&item.Status, &item.CreatedAt, &item.CompletedAt)
 
 	return item, err
+}
+
+func (r *PostgresRepository) List(ctx context.Context, filter inbox.ListFilter) (inbox.ListResult, error) {
+
+	var args []any
+	var where []string
+
+	if filter.Status != nil && *filter.Status != "" {
+		args = append(args, *filter.Status)
+		where = append(where, fmt.Sprintf("status = $%d", len(args)))
+	}
+
+	whereSQL := ""
+	if len(where) > 0 {
+		whereSQL = " WHERE " + strings.Join(where, " AND ")
+	}
+
+	countQuery := `SELECT COUNT(*) FROM inbox` + whereSQL
+	var total int
+
+	if err := r.pool.QueryRow(ctx, countQuery, args...).Scan(&total); err != nil {
+		return inbox.ListResult{}, err
+	}
+
+	args = append(args, filter.Limit, filter.Offset)
+
+	listQuery := fmt.Sprintf(`
+		SELECT id, title, status, created_at, completed_at
+		FROM inbox
+		%s
+		ORDER BY created_at ASC
+		LIMIT $%d OFFSET $%d
+	`, whereSQL, len(args)-1, len(args))
+
+	rows, err := r.pool.Query(ctx, listQuery, args...)
+	if err != nil {
+		return inbox.ListResult{}, err
+	}
+	defer rows.Close()
+
+	items := make([]inbox.InboxItem, 0)
+	for rows.Next() {
+		var item inbox.InboxItem
+		if err := rows.Scan(&item.ID, &item.Title, &item.Status, &item.CreatedAt, &item.CompletedAt); err != nil {
+			return inbox.ListResult{}, err
+		}
+		items = append(items, item)
+	}
+
+	if err := rows.Err(); err != nil {
+		return inbox.ListResult{}, err
+	}
+
+	return inbox.ListResult{
+		Items:  items,
+		Total:  total,
+		Limit:  filter.Limit,
+		Offset: filter.Offset,
+	}, nil
+
 }

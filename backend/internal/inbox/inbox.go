@@ -1,6 +1,8 @@
 package inbox
 
-import "time"
+import (
+	"time"
+)
 
 type InboxItem struct {
 	ID          int
@@ -14,4 +16,17 @@ type InboxItem struct {
 type CreateInput struct {
 	Title string
 	Text  string
+}
+
+type ListFilter struct {
+	Status *string
+	Limit  int
+	Offset int
+}
+
+type ListResult struct {
+	Items  []InboxItem
+	Total  int
+	Limit  int
+	Offset int
 }

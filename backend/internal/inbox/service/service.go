@@ -21,3 +21,14 @@ func (s *Service) Create(ctx context.Context, input inbox.CreateInput) (inbox.In
 	}
 	return s.repo.Create(ctx, input)
 }
+
+func (s *Service) List(ctx context.Context, filter inbox.ListFilter) (inbox.ListResult, error) {
+	if filter.Limit <= 0 {
+		filter.Limit = 20
+	}
+	if filter.Offset < 0 {
+		filter.Offset = 0
+	}
+
+	return s.repo.List(ctx, filter)
+}

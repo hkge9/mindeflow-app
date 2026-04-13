@@ -7,4 +7,5 @@ import (
 
 type Repository interface {
 	Create(ctx context.Context, input inbox.CreateInput) (inbox.InboxItem, error)
+	List(ctx context.Context, filter inbox.ListFilter) (inbox.ListResult, error)
 }
