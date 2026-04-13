@@ -4,6 +4,11 @@ import (
 	"time"
 )
 
+const (
+	StatusNew       = "new"
+	StatusProcessed = "processed"
+)
+
 type InboxItem struct {
 	ID          int
 	Title       string
@@ -29,4 +34,9 @@ type ListResult struct {
 	Total  int
 	Limit  int
 	Offset int
+}
+
+type SkipResult struct {
+	ID     int    `json:"id"`
+	Status string `json:"status"`
 }

@@ -2,10 +2,12 @@ package repository
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"mindeflow-app/backend/internal/inbox"
 	"strings"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -57,7 +59,7 @@ func (r *PostgresRepository) List(ctx context.Context, filter inbox.ListFilter) 
 	args = append(args, filter.Limit, filter.Offset)
 
 	listQuery := fmt.Sprintf(`
-		SELECT id, title, status, created_at, completed_at
+		SELECT id, title, text, status, created_at, completed_at
 		FROM inbox
 		%s
 		ORDER BY created_at ASC
@@ -73,7 +75,7 @@ func (r *PostgresRepository) List(ctx context.Context, filter inbox.ListFilter) 
 	items := make([]inbox.InboxItem, 0)
 	for rows.Next() {
 		var item inbox.InboxItem
-		if err := rows.Scan(&item.ID, &item.Title, &item.Status, &item.CreatedAt, &item.CompletedAt); err != nil {
+		if err := rows.Scan(&item.ID, &item.Title, &item.Text, &item.Status, &item.CreatedAt, &item.CompletedAt); err != nil {
 			return inbox.ListResult{}, err
 		}
 		items = append(items, item)
@@ -90,4 +92,62 @@ func (r *PostgresRepository) List(ctx context.Context, filter inbox.ListFilter) 
 		Offset: filter.Offset,
 	}, nil
 
+}
+
+var ErrInboxItemNotFound = errors.New("inbox item not found")
+
+func (r *PostgresRepository) GetByID(ctx context.Context, id int) (inbox.InboxItem, error) {
+	query := `
+		SELECT id, title, status, created_at, completed_at
+		FROM inbox
+		WHERE id = $1
+	`
+
+	var item inbox.InboxItem
+	err := r.pool.QueryRow(ctx, query, id).
+		Scan(&item.ID, &item.Title, &item.Status, &item.CreatedAt, &item.CompletedAt)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return inbox.InboxItem{}, ErrInboxItemNotFound
+		}
+		return inbox.InboxItem{}, err
+	}
+
+	return item, nil
+}
+
+func (r *PostgresRepository) Delete(ctx context.Context, id int) error {
+	query := `DELETE FROM inbox WHERE id = $1`
+
+	tag, err := r.pool.Exec(ctx, query, id)
+	if err != nil {
+		return err
+	}
+
+	if tag.RowsAffected() == 0 {
+		return errors.New("inbox item not found")
+	}
+
+	return nil
+}
+
+func (r *PostgresRepository) Skip(ctx context.Context, id int) (inbox.InboxItem, error) {
+	query := `
+		UPDATE inbox
+		SET created_at = NOW()
+		WHERE id = $1
+		RETURNING id, title, status, created_at, completed_at
+	`
+
+	var item inbox.InboxItem
+	err := r.pool.QueryRow(ctx, query, id).
+		Scan(&item.ID, &item.Title, &item.Status, &item.CreatedAt, &item.CompletedAt)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return inbox.InboxItem{}, ErrInboxItemNotFound
+		}
+		return inbox.InboxItem{}, err
+	}
+
+	return item, nil
 }

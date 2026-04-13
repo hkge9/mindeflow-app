@@ -7,6 +7,8 @@ import (
 	"mindeflow-app/backend/internal/utils"
 	"net/http"
 	"strconv"
+
+	"github.com/go-chi/chi/v5"
 )
 
 type Handler struct {
@@ -71,9 +73,45 @@ func (h *Handler) ListInboxItems(w http.ResponseWriter, r *http.Request) {
 		resp.Data = append(resp.Data, InboxItemResponse{
 			ID:     item.ID,
 			Title:  item.Title,
+			Text:   item.Text,
 			Status: item.Status,
 		})
 	}
 
 	utils.WriteJSON(w, http.StatusOK, resp)
+}
+func (h *Handler) DeleteInboxItem(w http.ResponseWriter, r *http.Request) {
+	idParam := chi.URLParam(r, "id")
+	inboxID, err := strconv.Atoi(idParam)
+	if err != nil {
+		utils.WriteError(w, utils.NewBadRequest("invalid inbox id"))
+		return
+	}
+
+	if err := h.service.Delete(r.Context(), inboxID); err != nil {
+		utils.WriteError(w, err)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h *Handler) SkipInboxItem(w http.ResponseWriter, r *http.Request) {
+	idParam := chi.URLParam(r, "id")
+	inboxID, err := strconv.Atoi(idParam)
+	if err != nil {
+		utils.WriteError(w, utils.NewBadRequest("invalid inbox id"))
+		return
+	}
+
+	result, err := h.service.Skip(r.Context(), inboxID)
+	if err != nil {
+		utils.WriteError(w, err)
+		return
+	}
+
+	utils.WriteJSON(w, http.StatusOK, SkipResponse{
+		ID:     result.ID,
+		Status: result.Status,
+	})
 }

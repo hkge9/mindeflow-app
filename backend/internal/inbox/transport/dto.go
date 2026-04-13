@@ -22,3 +22,8 @@ type MetaResponse struct {
 	Offset int `json:"offset"`
 	Total  int `json:"total"`
 }
+
+type SkipResponse struct {
+	ID     int    `json:"id"`
+	Status string `json:"status"`
+}

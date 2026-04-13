@@ -8,4 +8,7 @@ import (
 type Repository interface {
 	Create(ctx context.Context, input inbox.CreateInput) (inbox.InboxItem, error)
 	List(ctx context.Context, filter inbox.ListFilter) (inbox.ListResult, error)
+	GetByID(ctx context.Context, id int) (inbox.InboxItem, error)
+	Delete(ctx context.Context, id int) error
+	Skip(ctx context.Context, id int) (inbox.InboxItem, error)
 }
